@@ -1,0 +1,203 @@
+###Elegant Quail data analysis
+##Devon DeRaad
+##started: 13 April 2017
+##libraries
+library(ggplot2)
+library(ggbiplot)
+library(grid)
+library(gridExtra)
+##import cleaned csv incl. morphologic data measured from MLZ specimens
+#####and subspecies characteristics
+setwd("~/Desktop")
+cleanquail<-read.csv("Quail.data.cleaned.csv")
+##normalitycheck
+hist(cleanquail$wc)
+hist(cleanquail$tl)
+hist(cleanquail$cul)
+hist(cleanquail$tarsus)
+##all four characteristics normally distributed
+#Manova for male v female in all 4 quant characteristics
+fem.male <- manova(cbind(wc, tl, cul, tarsus) ~ sex, data = cleanquail)
+summary(fem.male)
+##significantly different in morphology based on sex
+#summarize each character individually
+summary.aov(fem.male)
+#significantly different in each of the four characteristics
+###
+##exploratory PCA on wing cord, tail length, culmen, and tarsus for all individuals
+pca.everything<- prcomp(cleanquail[, 20:23])
+#PrintPCA
+print(pca.everything)
+#summarize PC's (first two axes explain ~93% of variance)
+summary(pca.everything)
+#visualize the significant difference between sexes on the pca graph (Figure 2)
+ggbiplot(pca.everything, obs.scale = 1, var.scale = 1,
+         groups = cleanquail$sex, ellipse = TRUE) +
+  scale_color_discrete(name = '') +
+  theme(legend.direction = 'horizontal')
+##clear division
+##if we hope to find differences between subspecies, should be separated by sex first
+#subset dataset by sex
+malequail<- subset(cleanquail, cleanquail$sex=="male")
+femalequail<-subset(cleanquail, cleanquail$sex=="female")
+#male only pca
+pca.male<- prcomp(malequail[, 20:23])
+#just females
+pca.female<- prcomp(femalequail[, 20:23])
+#manova of males based on geog
+malegeogmanova <- manova(cbind(wc, tl, cul, tarsus) ~ Subspecies.geography, data = malequail)
+summary(malegeogmanova)
+#summarize each character individually
+summary.aov(malegeogmanova)
+#visualize males only by geography
+malegeog<-ggbiplot(pca.male, obs.scale = 1, var.scale = 1,
+         groups = malequail$Subspecies.geography, ellipse=TRUE) +
+  scale_color_discrete(name = '')+
+  ggtitle("male by geography")
+#manova of males based on key
+malekeymanova <- manova(cbind(wc, tl, cul, tarsus) ~ Subspecies.key, data = malequail)
+summary(malekeymanova)
+#summarize each character individually
+summary.aov(malekeymanova)
+#visualize males by key
+malekey<-ggbiplot(pca.male, obs.scale = 1, var.scale = 1,
+         groups = malequail$Subspecies.key, ellipse = TRUE) +
+  scale_color_discrete(name = '')+
+  ggtitle("male by key")
+#manova of males based on tag
+maletagmanova <- manova(cbind(wc, tl, cul, tarsus) ~ Subspecies.tag, data = malequail)
+summary(maletagmanova)
+#summarize each character individually
+summary.aov(maletagmanova)
+#visualize males by tag
+maletag<-ggbiplot(pca.male, obs.scale = 1, var.scale = 1,
+                  groups = malequail$Subspecies.tag, ellipse = TRUE) +
+  scale_color_discrete(name = '')+
+  ggtitle("male by tag")
+#manova of females based on geog
+femalegeogmanova <- manova(cbind(wc, tl, cul, tarsus) ~ Subspecies.geography, data = femalequail)
+summary(femalegeogmanova)
+#summarize each character individually
+summary.aov(femalegeogmanova)
+#visualize female geog
+femgeog<-ggbiplot(pca.female, obs.scale = 1, var.scale = 1,
+         groups = femalequail$Subspecies.geography, ellipse = TRUE) +
+  scale_color_discrete(name = '')+
+  ggtitle("female by geography")
+#manova of females based on key
+femalekeymanova <- manova(cbind(wc, tl, cul, tarsus) ~ Subspecies.key, data = femalequail)
+summary(femalekeymanova)
+#summarize each character individually
+summary.aov(femalekeymanova)
+#visualize female key
+femkey<-ggbiplot(pca.female, obs.scale = 1, var.scale = 1,
+         groups = femalequail$Subspecies.key, ellipse = TRUE) +
+  scale_color_discrete(name = '')+
+  ggtitle("female by key")
+#manova of females based on tag
+femaletagmanova <- manova(cbind(wc, tl, cul, tarsus) ~ Subspecies.tag, data = femalequail)
+summary(femaletagmanova)
+#summarize each character individually
+summary.aov(femaletagmanova)
+#visualize female tag
+femtag<-ggbiplot(pca.female, obs.scale = 1, var.scale = 1,
+                  groups = femalequail$Subspecies.tag, ellipse = TRUE) +
+  scale_color_discrete(name = '')+
+  ggtitle("female by tag")
+#
+###(for each manova p-values and df recorded and entered into seperate table)
+#
+##plot all six PCA scatterplots on one grid (Figure 4)
+grid.arrange(malekey, maletag, malegeog, femgeog, femkey, femtag, ncol = 3)
+##further investigate tail length differences
+#box and whisker for tail length in each of the subspecies id categories
+#box and whisk maletag
+##14 font###
+bwmaletag<-ggplot(malequail, aes(Subspecies.tag, tl)) + 
+  geom_boxplot() +
+  ylab("tail length (mm)")+
+  xlab("Males based on tag")+
+  theme(text = element_text(size=14),
+        axis.text.x = element_text(face = "italic"))
+#box and whisk malekey
+bwmalekey<-ggplot(malequail, aes(Subspecies.key, tl)) + 
+  geom_boxplot() +
+  ylab("tail length (mm)")+
+  xlab("Males based on key")+
+  theme(text = element_text(size=14),
+        axis.text.x = element_text(angle=45, hjust = 1, face = "italic"))
+#box and whisk malegeog
+bwmalegeog<-ggplot(malequail, aes(Subspecies.geography, tl)) + 
+  geom_boxplot() +
+  ylab("tail length (mm)")+
+  xlab("Males based on geography")+
+  theme(text = element_text(size=14),
+        axis.text.x = element_text(face = "italic"))
+#box and whisk femaletag
+bwfemaletag<-ggplot(femalequail, aes(Subspecies.tag, tl)) + 
+  geom_boxplot() +
+  ylab("tail length (mm)")+
+  xlab("Females based on tag")+
+  theme(text = element_text(size=14),
+        axis.text.x = element_text(face = "italic"))
+#box and whisk femalekey
+bwfemalekey<-ggplot(femalequail, aes(Subspecies.key, tl)) + 
+  geom_boxplot() +
+  ylab("tail length (mm)")+
+  xlab("Females based on key")+
+  theme(text = element_text(size=14),
+        axis.text.x = element_text(angle=45, hjust=1, face = "italic"))
+#box and whisk femalegeog
+bwfemalegeog<-ggplot(femalequail, aes(Subspecies.geography, tl))+ 
+  geom_boxplot()+
+  ylab("tail length (mm)")+
+  xlab("Females based on geography")+
+  theme(text = element_text(size=14),
+        axis.text.x = element_text(face = "italic")) 
+  
+###combine plots
+grid.arrange(bwmalekey, bwmaletag, bwmalegeog, bwfemalekey, bwfemaletag, bwfemalegeog, ncol = 3)
+
+
+###8 point###
+bwmaletag<-ggplot(malequail, aes(Subspecies.tag, tl)) + 
+  geom_boxplot() +
+  ylab("tail length (mm)")+
+  xlab("Males based on tag")+
+  theme(text = element_text(size=8),
+        axis.text.x = element_text(face = "italic"))
+#box and whisk malekey
+bwmalekey<-ggplot(malequail, aes(Subspecies.key, tl)) + 
+  geom_boxplot() +
+  ylab("tail length (mm)")+
+  xlab("Males based on key")+
+  theme(text = element_text(size=8),
+        axis.text.x = element_text(face = "italic"))
+#box and whisk malegeog
+bwmalegeog<-ggplot(malequail, aes(Subspecies.geography, tl)) + 
+  geom_boxplot() +
+  ylab("tail length (mm)")+
+  xlab("Males based on geography")+
+  theme(text = element_text(size=8),
+        axis.text.x = element_text(face = "italic"))
+#box and whisk femaletag
+bwfemaletag<-ggplot(femalequail, aes(Subspecies.tag, tl)) + 
+  geom_boxplot() +
+  ylab("tail length (mm)")+
+  xlab("Females based on tag")+
+  theme(text = element_text(size=8),
+        axis.text.x = element_text(face = "italic"))
+#box and whisk femalekey
+bwfemalekey<-ggplot(femalequail, aes(Subspecies.key, tl)) + 
+  geom_boxplot() +
+  ylab("tail length (mm)")+
+  xlab("Females based on key")+
+  theme(text = element_text(size=8),
+        axis.text.x = element_text(face = "italic"))
+#box and whisk femalegeog
+bwfemalegeog<-ggplot(femalequail, aes(Subspecies.geography, tl))+ 
+  geom_boxplot()+
+  ylab("tail length (mm)")+
+  xlab("Females based on geography")+
+  theme(text = element_text(size=8),
+        axis.text.x = element_text(face = "italic")) 
